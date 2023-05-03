@@ -1,0 +1,36 @@
+[package]
+name = "recipe-measures"
+version = "0.0.1"
+authors = ["Dylan Owen <dyltotheo@gmail.com>"]
+description = ""
+readme = "Readme.md"
+license = "MPL-2.0"
+homepage = "https://github.com/dylanowen/recipe-measures"
+repository = "https://github.com/dylanowen/recipe-measures"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+thiserror = "~1.0.40"
+lazy_static = "1.4.0"
+
+num-rational = "~0.4.1"
+num-traits = "~0.2.15"
+
+nom = "7.1.3"
+
+#[dependencies.uom]
+#version = "~0.34.0"
+#default-features = false
+#features = [
+##    "autoconvert", # automatic base unit conversion.
+##    "usize", "u8", "u16", "u32", "u64", "u128", # Unsigned integer storage types.
+##    "isize", "i8", "i16", "i32", "i64", "i128", # Signed integer storage types.
+##    "bigint", "biguint", # Arbitrary width integer storage types.
+#    "rational64", "bigrational", # "rational64", "bigrational", # Integer ratio storage types.
+##    "complex32", "complex64", # Complex floating point storage types.
+##    "f32", "f64", # Floating point storage types.
+#    "si", #"std", # Built-in SI system and std library support.
+##    "use_serde", # Serde support.
+#]
