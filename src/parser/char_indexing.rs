@@ -14,9 +14,12 @@ impl<'a> CharIndexing for &'a str {
         if !char_range.is_empty() {
             let mut iter = self.char_indices().map(|(i, _)| i);
             let byte_start = iter.nth(char_range.start);
-            let byte_end = iter.nth(char_range.end - char_range.start - 1);
-            if let (Some(start), Some(end)) = (byte_start, byte_end) {
-                Some(&self[start..end])
+            if let Some(start) = byte_start {
+                if let Some(end) = iter.nth(char_range.end - char_range.start - 1) {
+                    Some(&self[start..end])
+                } else {
+                    Some(&self[start..])
+                }
             } else {
                 None
             }
@@ -69,6 +72,8 @@ mod test {
     #[test]
     fn test_char_slice() {
         assert_eq!("12345".char_slice(0..1).unwrap(), "1");
+        assert_eq!("12345".char_slice(0..5).unwrap(), "12345");
+        assert_eq!("12345".char_slice(0..6).unwrap(), "12345");
         assert_eq!("⅑45".char_slice(0..2).unwrap(), "⅑4");
         assert_eq!("⅑45".char_slice(1..1).unwrap(), "");
         assert_eq!("⅑45".char_slice(1..2).unwrap(), "4");
@@ -79,6 +84,10 @@ mod test {
         assert_eq!(
             "⅑45".to_string().char_slice(0..2).unwrap(),
             "⅑4".to_string()
+        );
+        assert_eq!(
+            "½ teaspoon".to_string().char_slice(2..10).unwrap(),
+            "teaspoon".to_string()
         );
     }
 

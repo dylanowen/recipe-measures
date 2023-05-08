@@ -11,11 +11,12 @@ use nom::sequence::{separated_pair, tuple};
 use nom::IResult;
 use nom::InputLength;
 use num_rational::Rational32;
+use serde::{Deserialize, Serialize};
 
 use crate::parser::{CharIndexing, ParserInput};
 use crate::{Measure, ParseError, Unit, UNITFUL_UNITS};
 
-#[derive(Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Eq, PartialEq)]
 pub struct MeasureToken<'a> {
     pub measure: Measure,
     pub number_range: Range<usize>,
@@ -172,18 +173,32 @@ impl<'a> MeasureToken<'a> {
     }
 
     pub fn number_text(&self) -> Cow<'a, str> {
-        self.raw
-            .char_slice(0..self.number_range.end - self.number_range.start)
-            .expect("number_range is outside of our raw text")
+        let range = 0..self.number_range.end - self.number_range.start;
+        self.raw.char_slice(range.clone()).unwrap_or_else(|| {
+            panic!(
+                "number_range is outside of '{}' @ length: {} for slice: {:?}",
+                self.raw,
+                self.raw.chars().count(),
+                range
+            )
+        })
     }
 
     pub fn unit_text(&self) -> Cow<'a, str> {
-        self.raw
-            .char_slice(
-                self.unit_range.start - self.number_range.start
-                    ..self.unit_range.end - self.number_range.start,
+        let range = self.unit_range.start - self.number_range.start
+            ..self.unit_range.end - self.number_range.start;
+        self.raw.char_slice(range.clone()).unwrap_or_else(|| {
+            panic!(
+                "unit_text is outside of '{}' @ length: {} for slice: {:?}",
+                self.raw,
+                self.raw.chars().count(),
+                range
             )
-            .expect("number_range is outside of our raw text")
+        })
+    }
+
+    pub fn text(&self) -> Cow<'a, str> {
+        self.raw.clone()
     }
 }
 

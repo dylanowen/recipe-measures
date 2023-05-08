@@ -2,16 +2,17 @@ use std::fmt::{Debug, Formatter};
 
 use num_rational::Rational32;
 use num_traits::{One, Zero};
+use serde::{Deserialize, Serialize};
 
 use crate::{Dimension, Unit};
 
-#[derive(Eq, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, Clone)]
 pub enum Measure {
     Single(SingleMeasure),
     Multi(Vec<SingleMeasure>),
 }
 
-#[derive(Eq, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, Clone)]
 pub struct SingleMeasure {
     pub value: Rational32,
     pub unit: Unit,

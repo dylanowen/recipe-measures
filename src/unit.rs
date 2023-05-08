@@ -4,10 +4,11 @@ use std::fmt::{Debug, Display, Formatter};
 use lazy_static::lazy_static;
 use num_rational::Rational32;
 use num_traits::One;
+use serde::{Deserialize, Serialize};
 
 use crate::Dimension;
 
-#[derive(Eq, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, Clone)]
 pub enum Unit {
     // Volume
     Drop,
