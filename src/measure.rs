@@ -1,10 +1,12 @@
-use std::fmt::{Debug, Formatter};
+use std::fmt;
+use std::fmt::{Debug, Display, Formatter};
+use std::ptr::write;
 
 use num_rational::Rational32;
 use num_traits::{One, Zero};
 use serde::{Deserialize, Serialize};
 
-use crate::{Dimension, Unit};
+use crate::{Dimension, Magnitude, Unit};
 
 #[derive(Serialize, Deserialize, Eq, PartialEq, Clone)]
 pub enum Measure {
@@ -50,20 +52,27 @@ impl Measure {
     }
 }
 
-impl Debug for Measure {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl Display for Measure {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Measure::Single(single) => single.fmt(f),
-            Measure::Multi(multi) => write!(
-                f,
-                "{}",
-                multi
-                    .iter()
-                    .map(|q| format!("{q:?}"))
-                    .collect::<Vec<_>>()
-                    .join(" and ")
-            ),
+            Measure::Single(measure) => Display::fmt(measure, f),
+            Measure::Multi(multi) => {
+                let first = true;
+                for (i, measure) in multi.iter().enumerate() {
+                    if !first && i < multi.len() - 1 {
+                        write!(f, " and ")?;
+                    }
+                    Display::fmt(measure, f)?;
+                }
+                Ok(())
+            }
         }
+    }
+}
+
+impl Debug for Measure {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{self:#}")
     }
 }
 
@@ -83,12 +92,17 @@ impl SingleMeasure {
         SingleMeasure::new(base_value / unit.multiple(), unit)
     }
 
+    #[inline]
+    pub(crate) fn base(&self) -> Rational32 {
+        self.value * self.unit.multiple()
+    }
+
     pub(crate) fn base_trunc(&self) -> Rational32 {
-        self.value.trunc() * self.unit.multiple()
+        self.base().trunc()
     }
 
     pub(crate) fn base_fract(&self) -> Rational32 {
-        self.value.fract() * self.unit.multiple()
+        self.base().fract()
     }
 
     pub fn is_good(&self) -> bool {
@@ -101,33 +115,37 @@ impl SingleMeasure {
     }
 }
 
-impl Debug for SingleMeasure {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl Display for SingleMeasure {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let unit_text = if !f.alternate() {
+            self.unit.abbreviation()
+        } else {
+            self.unit.description(self.value > Rational32::one())
+        };
         if self.value.is_integer() {
-            write!(
-                f,
-                "{} {}",
-                self.value.numer(),
-                self.unit.description(self.value > Rational32::one())
-            )
+            write!(f, "{} {unit_text}", self.value.numer(),)
         } else if self.value > Rational32::one() {
             let fract = self.value.fract();
             write!(
                 f,
-                "{} {}/{} {}",
+                "{} {}/{} {unit_text}",
                 self.value.to_integer(),
                 fract.numer(),
                 fract.denom(),
-                self.unit.description(false)
             )
         } else {
             write!(
                 f,
-                "{}/{} {}",
+                "{}/{} {unit_text}",
                 self.value.numer(),
-                self.value.denom(),
-                self.unit.description(false)
+                self.value.denom()
             )
         }
+    }
+}
+
+impl Debug for SingleMeasure {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:#}")
     }
 }

@@ -1,4 +1,5 @@
 use num_rational::Rational32;
+use std::ops;
 
 use crate::{Dimension, Measure, SingleMeasure, Unit};
 
@@ -74,6 +75,35 @@ impl Magnitude {
         }
 
         fallback
+    }
+}
+
+impl ops::Mul<Rational32> for Magnitude {
+    type Output = Magnitude;
+
+    fn mul(self, multiple: Rational32) -> Magnitude {
+        Self {
+            base_value: self.base_value * multiple,
+            dimension: self.dimension,
+        }
+    }
+}
+
+impl From<Measure> for Magnitude {
+    fn from(value: Measure) -> Self {
+        let base_value = match &value {
+            Measure::Single(measure) => measure.base(),
+            Measure::Multi(measures) => measures
+                .iter()
+                .map(|m| m.base())
+                .reduce(|a, b| a + b)
+                .unwrap_or_default(),
+        };
+
+        Self {
+            base_value,
+            dimension: value.dimension(),
+        }
     }
 }
 
