@@ -1,20 +1,29 @@
-use crate::{Unit, TEMPERATURE_UNITS, TIME_UNITS, UNITLESS_UNITS, VOLUME_UNITS};
+use crate::temperature::TemperatureDimension;
+use crate::volume::VolumeDimension;
 
-#[derive(Eq, PartialEq, Debug, Copy, Clone)]
-pub enum Dimension {
-    Volume,
-    Temperature,
-    Time,
-    Unitless,
+use crate::unitless::UnitlessDimension;
+use crate::Unit;
+use crate::{CommonUnit, UnitLike};
+use enum_dispatch::enum_dispatch;
+use std::fmt::Debug;
+
+#[enum_dispatch(Dimension)]
+pub trait DimensionLike {
+    fn units(&self) -> &'static [Unit];
+
+    fn common_units(&self) -> &'static [CommonUnit];
 }
 
-impl Dimension {
-    pub fn units(self) -> &'static [Unit] {
-        match self {
-            Dimension::Volume => &VOLUME_UNITS,
-            Dimension::Temperature => &TEMPERATURE_UNITS,
-            Dimension::Time => &TIME_UNITS,
-            Dimension::Unitless => &UNITLESS_UNITS,
-        }
+#[derive(Eq, PartialEq, Debug, Copy, Clone)]
+#[enum_dispatch]
+pub enum Dimension {
+    Volume(VolumeDimension),
+    Temperature(TemperatureDimension),
+    Unitless(UnitlessDimension),
+}
+
+impl<U: UnitLike> From<U> for Dimension {
+    fn from(value: U) -> Self {
+        value.dimension()
     }
 }

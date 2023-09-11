@@ -14,7 +14,8 @@ use num_rational::Rational32;
 use serde::{Deserialize, Serialize};
 
 use crate::parser::{CharIndexing, ParserInput};
-use crate::{Measure, ParseError, Unit, UNITFUL_UNITS};
+use crate::unitless::Unitless;
+use crate::{Measure, ParseError, SingleMeasure, Unit, UnitLike};
 
 #[derive(Serialize, Deserialize, Eq, PartialEq)]
 pub struct MeasureToken<'a> {
@@ -34,7 +35,7 @@ pub fn parse_measure(input: ParserInput) -> IResult<ParserInput, MeasureToken> {
     Ok((
         remainder,
         MeasureToken {
-            measure: Measure::single(number, unit),
+            measure: SingleMeasure::new(number, unit).into(),
             number_range: number_raw.range(),
             unit_range: unit_raw.range(),
             raw: Cow::Borrowed(&input.input[..input.input_len() - remainder.input_len()]),
@@ -124,7 +125,7 @@ fn parse_unit(input: ParserInput) -> IResult<ParserInput, Unit> {
     let (remainder, raw_unit) = alpha1(input)?;
 
     let mut secondary = None;
-    for unit in UNITFUL_UNITS.iter() {
+    for unit in Unit::unitful_units().iter() {
         for &alias in unit.aliases() {
             if raw_unit.input == alias {
                 // if we have an exact match return immediately
@@ -138,19 +139,23 @@ fn parse_unit(input: ParserInput) -> IResult<ParserInput, Unit> {
 
     Ok((
         remainder,
-        secondary.unwrap_or(Unit::unitless(raw_unit.input.to_string())),
+        secondary.unwrap_or(Unitless::new(raw_unit.input).into()),
     ))
 }
 
 impl MeasureToken<'_> {
-    pub fn new<'a, S: Into<Cow<'a, str>>>(
-        measure: Measure,
+    pub fn new<'a, M, S>(
+        measure: M,
         number_range: Range<usize>,
         unit_range: Range<usize>,
         raw: S,
-    ) -> MeasureToken<'a> {
+    ) -> MeasureToken<'a>
+    where
+        M: Into<Measure>,
+        S: Into<Cow<'a, str>>,
+    {
         MeasureToken {
-            measure,
+            measure: measure.into(),
             number_range,
             unit_range,
             raw: raw.into(),
@@ -221,6 +226,8 @@ impl<'a> Debug for MeasureToken<'a> {
 #[cfg(test)]
 mod test {
     use crate::parser::test::raw;
+    use crate::volume::VolumeUnit;
+    use crate::SingleMeasure;
 
     use super::*;
 
@@ -231,7 +238,7 @@ mod test {
             Ok((
                 " other",
                 MeasureToken::new(
-                    Measure::single(Rational32::new(3, 4), Unit::Teaspoon),
+                    SingleMeasure::new(Rational32::new(3, 4), VolumeUnit::Teaspoon),
                     0..3,
                     4..12,
                     "3/4 teaspoon"
@@ -243,7 +250,7 @@ mod test {
             Ok((
                 " other",
                 MeasureToken::new(
-                    Measure::single(Rational32::new(3, 4), Unit::Tablespoon),
+                    SingleMeasure::new(Rational32::new(3, 4), VolumeUnit::Tablespoon),
                     0..3,
                     5..15,
                     "3/4  tablespoon"
@@ -255,7 +262,7 @@ mod test {
             Ok((
                 " other",
                 MeasureToken::new(
-                    Measure::single(Rational32::new(3, 4), Unit::Teaspoon),
+                    SingleMeasure::new(Rational32::new(3, 4), VolumeUnit::Teaspoon),
                     0..3,
                     3..11,
                     "3/4teaspoon"
@@ -267,7 +274,7 @@ mod test {
             Ok((
                 " other",
                 MeasureToken::new(
-                    Measure::single(Rational32::new(3, 4), Unit::Teaspoon),
+                    SingleMeasure::new(Rational32::new(3, 4), VolumeUnit::Teaspoon),
                     0..4,
                     4..12,
                     "3 /4teaspoon"
@@ -279,7 +286,7 @@ mod test {
             Ok((
                 " other",
                 MeasureToken::new(
-                    Measure::single(Rational32::new(3, 4), Unit::Teaspoon),
+                    SingleMeasure::new(Rational32::new(3, 4), VolumeUnit::Teaspoon),
                     0..4,
                     4..12,
                     "3/ 4teaspoon"
@@ -291,7 +298,7 @@ mod test {
             Ok((
                 " other",
                 MeasureToken::new(
-                    Measure::single(Rational32::new(3, 4), Unit::Teaspoon),
+                    SingleMeasure::new(Rational32::new(3, 4), VolumeUnit::Teaspoon),
                     0..5,
                     6..14,
                     "3 / 4 teaspoon"
@@ -303,7 +310,7 @@ mod test {
             Ok((
                 " other",
                 MeasureToken::new(
-                    Measure::single(Rational32::new(7, 4), Unit::Teaspoon),
+                    SingleMeasure::new(Rational32::new(7, 4), VolumeUnit::Teaspoon),
                     0..7,
                     8..16,
                     "1 3 / 4 teaspoon"
@@ -315,7 +322,7 @@ mod test {
             Ok((
                 " other",
                 MeasureToken::new(
-                    Measure::single(Rational32::new(7, 4), Unit::Teaspoon),
+                    SingleMeasure::new(Rational32::new(7, 4), VolumeUnit::Teaspoon),
                     0..5,
                     6..14,
                     "1 3⁄4 teaspoon"
@@ -327,7 +334,7 @@ mod test {
             Ok((
                 " other",
                 MeasureToken::new(
-                    Measure::single(Rational32::new(13, 4), Unit::Teaspoon),
+                    SingleMeasure::new(Rational32::new(13, 4), VolumeUnit::Teaspoon),
                     0..4,
                     5..13,
                     "13⁄4 teaspoon"
@@ -339,7 +346,7 @@ mod test {
             Ok((
                 " other",
                 MeasureToken::new(
-                    Measure::single(Rational32::new(7, 4), Unit::Teaspoon),
+                    SingleMeasure::new(Rational32::new(7, 4), VolumeUnit::Teaspoon),
                     0..3,
                     4..12,
                     "1 ¾ teaspoon"
@@ -350,10 +357,7 @@ mod test {
         assert!(raw(parse_measure)("3. Line").is_err());
         assert_eq!(
             raw(parse_measure)("10 times").unwrap().1.measure,
-            Measure::single(
-                Rational32::from_integer(10),
-                Unit::unitless("times".to_string())
-            )
+            SingleMeasure::new(Rational32::from_integer(10), Unitless::new("times")).into()
         );
     }
 
@@ -427,15 +431,21 @@ mod test {
 
     #[test]
     fn test_parse_units() {
-        assert_eq!(raw(parse_unit)("drop"), Ok(("", Unit::Drop)));
-        assert_eq!(raw(parse_unit)("t"), Ok(("", Unit::Teaspoon)));
-        assert_eq!(raw(parse_unit)("T"), Ok(("", Unit::Tablespoon)));
-        assert_eq!(raw(parse_unit)("Tb"), Ok(("", Unit::Tablespoon)));
-        assert_eq!(raw(parse_unit)("c"), Ok(("", Unit::Cup)));
-        assert_eq!(raw(parse_unit)("C"), Ok(("", Unit::Cup)));
+        assert_eq!(raw(parse_unit)("drop"), Ok(("", VolumeUnit::Drop.into())));
+        assert_eq!(raw(parse_unit)("t"), Ok(("", VolumeUnit::Teaspoon.into())));
+        assert_eq!(
+            raw(parse_unit)("T"),
+            Ok(("", VolumeUnit::Tablespoon.into()))
+        );
+        assert_eq!(
+            raw(parse_unit)("Tb"),
+            Ok(("", VolumeUnit::Tablespoon.into()))
+        );
+        assert_eq!(raw(parse_unit)("c"), Ok(("", VolumeUnit::Cup.into())));
+        assert_eq!(raw(parse_unit)("C"), Ok(("", VolumeUnit::Cup.into())));
         assert_eq!(
             parse_unit(ParserInput::from("C other")),
-            Ok((ParserInput::new(" other", 1), Unit::Cup))
+            Ok((ParserInput::new(" other", 1), VolumeUnit::Cup.into()))
         );
     }
 }

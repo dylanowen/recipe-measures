@@ -1,3 +1,4 @@
+use enum_iterator::{all, All, Sequence};
 use std::fmt::Debug;
 
 use thiserror::Error;
@@ -5,13 +6,14 @@ use thiserror::Error;
 pub use dimension::*;
 pub use magnitude::*;
 pub use measure::*;
-pub use unit::*;
+pub use units::*;
 
 mod dimension;
 mod magnitude;
 mod measure;
 pub mod parser;
-mod unit;
+mod units;
+mod utils;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
